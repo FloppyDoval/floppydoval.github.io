@@ -1,0 +1,50 @@
+.header {
+    margin-left: 40px;
+}
+.leaderBoard-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100vw; 
+    height: 100vh;
+    padding: 20px;
+    background-image: url(../images/LeaderBoardBackground.jpg);
+}
+.first{
+    margin: 10px;
+    display: flex;
+    
+    justify-content: center;
+    width: 600px;
+    border-radius: 5px; 
+    padding: 10px;
+    background-color: rgb(235, 196, 96);
+
+}
+.second {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    width: 600px;
+    border-radius: 5px; 
+    padding: 10px;
+    background-color: silver;
+}
+.third {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    width: 600px;
+    border-radius: 5px; 
+    padding: 10px;
+    background-color: rgb(158, 115, 5);
+}
+.entry {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    width: 600px;
+    border-radius: 5px; 
+    padding: 10px;
+}
