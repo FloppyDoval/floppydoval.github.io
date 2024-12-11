@@ -2,5 +2,8 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.15.2",
     "firebase": "^11.0.1"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.2.0"
   }
 }

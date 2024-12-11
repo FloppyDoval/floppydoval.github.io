@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
       ),
     },
     plugins: [react()],
+    base: '/languageGO/',
     server: {
       port: 8000,
     },
