@@ -1,59 +1,58 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  SignIn,
   SignedIn,
   SignedOut,
   SignInButton,
   SignOutButton,
-  UserButton,
   useUser,
 } from "@clerk/clerk-react";
 import styles from "../../styles/HomePage.module.scss";
-import { idText } from "typescript";
-
-/**
- * HomePage component - The main landing page for LanguageGo.
- * This component displays the platform's branding, introduction, and options to sign in or start learning.
- */
-
 
 const HomePage = () => {
-
-
-  const [bool, setBool] = useState<boolean>(true); 
-  const [userTag, setUserTag] = useState<string>(""); 
-  const [userScore, setUserScore] = useState<string>();
+  const [userTag, setUserTag] = useState<string>("");
   const [showLevelMenu, setShowLevelMenu] = useState(false);
-  
-  let  user  = useUser().user;
+  const [userScore, setUserScore] = useState(0);
+  const [numSessions, setNumsessions] = useState(0);
+  const user = useUser().user;
 
-
-  async function getUserScore(){
-      console.log(user);
-      //const f = user.user?.id
-      //console.log(user?.id);
-      if(user != null){
-        const userData = await fetch("http://localhost:3232/getScore?userid=" + user?.id);
-        console.log(user);
-        const userScore = await userData.json();
-        setUserScore(userScore.score[0].score);
-        console.log(userScore.score[0]);
-      }
-  }
-  // const fetchUserScore = async (): Promise<number> => {
-
-  //     if(user != null && bool){
-  //       setBool(false);
-  //       const userData = await fetch("http://localhost:3232/getScore?userid=" + user?.id);
-  //       console.log(user);
-  //       const userScore = await userData.json();
-  //       setUserScore(userScore.score[0].score);
-  //       console.log(userScore.score[0]);
+  console.log('User:', user);
+  // useEffect(() => {
+  //   const fetchUserScore = async () => {
+  //     if (user?.id) {
+  //       const response = await fetch(`http://localhost:3232/getScore?userid=${user.id}`);
+  //       const result = await response.json();
+        
+  //       if (result.score && result.score[0]) {
+  //         setUserScore(result.score[0].score || 0);
+  //       }
   //     }
-  // }
-  
+  //   };
+
+  //   fetchUserScore();
+  // }, [user?.id]);
+
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (user?.id) {
+        // Fetch score
+        const scoreResponse = await fetch(`http://localhost:3232/getScore?userid=${user.id}`);
+        const scoreResult = await scoreResponse.json();
+        if (scoreResult.score && scoreResult.score[0]) {
+          setUserScore(scoreResult.score[0].score || 0);
+        }
+        // Fetch session
+        if (scoreResult.score && scoreResult.score[0]) {
+          setNumsessions(scoreResult.score[0].sessions || 0);
+        }
+      }
+    };
+
+    fetchUserStats();
+  }, [user?.id]);
+
   return (
+ 
     <div>
       <div className={styles.flagBar}>
         <img
@@ -88,71 +87,88 @@ const HomePage = () => {
         />
       </div>
 
-      <h1
-        className={styles.header}
-        aria-label="Welcome to LanguageGo!"
-      >
-        Welcome to LanguageGo!
+      <h1 className={styles.header} aria-label="Welcome to LanguageGo!">
+          Welcome to LanguageGo!
       </h1>
 
-      <h3
-        className={styles.slogan}
-        aria-label="Platform Slogan"
-      >
-        The Best Way to Practice Typing in a New Language
-      </h3>
+      <SignedOut>
+        {/* Only show these sections when the user is signed out */}
+        <h3 className={styles.slogan} aria-label="Platform Slogan">
+          The Best Way to Practice Typing in a New Language
+        </h3>
+        <p className={styles.description} aria-label="Platform description">
+          Our platform helps you learn how to type in new languages quickly and
+          effectively. By providing interactive lessons and practice exercises,
+          we focus on building muscle memory for typing different alphabets.
+          Whether you're learning Hangul, Arabic, or any other script, you'll be
+          able to practice typing in a new language and improve your speed and
+          accuracy over time.
+        </p>
+        <div className="videoandstats">
+          <video
+            width="600"
+            loop
+            autoPlay
+            muted
+            aria-label="Demo Video"
+            className={styles.video}
+          >
+            <source src="/demo.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </SignedOut>
 
-      <p
-        className={styles.description}
-        aria-label="Platform description"
-      >
-        Our platform helps you learn how to type in new languages quickly and
-        effectively. By providing interactive lessons and practice exercises, we
-        focus on building muscle memory for typing different alphabets. Whether
-        you're learning Hangul, Arabic, or any other script, you'll be able to
-        practice typing in a new language and improve your speed and accuracy
-        over time.
-      </p>
-
-      <div className="videoandstats">
-        <video
-          width="600"
-          loop
-          autoPlay
-          muted
-          aria-label="Demo Video"
-          className={styles.video}
-        >
-          <source src="/demo.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <SignedIn>
-
-          <p className={styles.description}>If you want your score to be displayed on the Leaderboard, enter or update your User Tag!</p>
-          
-          <input className={styles.inputBox}
-          type="text"
-          value={userTag}
-          onChange={(e) => setUserTag(e.target.value)}
-          placeholder="Enter Here!"
-          onKeyPress={async (e) => {
-            if (e.key === 'Enter') {
-              setUserTag("")
-              await fetch("http://localhost:3232/updateTag?tag="+ userTag +"&userid=" + user?.id)
-            }
-          }}
+      <SignedIn>
+        {/* Only show this input section when the user is signed in */}
+        <div className={styles.inputSection}>
+          <p className={styles.description}>
+            If you want your score to be displayed on the Leaderboard, enter or
+            update your User Tag!
+          </p>
+          <input
+            className={styles.inputBox}
+            type="text"
+            value={userTag}
+            onChange={(e) => setUserTag(e.target.value)}
+            placeholder="Enter Here!"
+            onKeyPress={async (e) => {
+              if (e.key === "Enter") {
+                setUserTag("");
+                await fetch(
+                  `http://localhost:3232/updateTag?tag=${userTag}&userid=${user?.id}`
+                );
+              }
+            }}
           />
-        </SignedIn>
+        </div>
+        {/* <Dashboard accuracy={accuracy} numSessions={numSessions} /> */}
+        <div className={styles.table}>
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Dashboard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Number of Sessions</td>
+            <td>{numSessions}</td>
+          </tr>
+          <tr>
+            <td>Score</td>
+            <td>{userScore}</td>
+          </tr>
+        </tbody>
+      </table>
       </div>
-      
+      </SignedIn>
+
       <div className={styles.buttonContainer}>
         <SignedOut>
           <SignInButton>
             <Link to="/">
-              <button
-                aria-label="Sign In Button"
-                className={styles.button}
-                >
+              <button aria-label="Sign In Button" className={styles.button}>
                 Sign In
               </button>
             </Link>
@@ -161,10 +177,7 @@ const HomePage = () => {
         <SignedIn>
           <SignOutButton>
             <Link to="/">
-              <button
-                aria-label="Sign Out Button"
-                className={styles.button}
-                >
+              <button aria-label="Sign Out Button" className={styles.button}>
                 Sign Out
               </button>
             </Link>
@@ -187,28 +200,29 @@ const HomePage = () => {
           </button>
         </Link>
         <div className={styles.levelDropdown}>
-        <button
-          className={styles.button}
-          onClick={() => setShowLevelMenu(!showLevelMenu)}
-          aria-label="Select Practice Level"
-        >
-          Practice Mode
-        </button>
-        {showLevelMenu && (
-          <div className={styles.dropdownMenu}>
-            <Link to="/practicePage/beginner">
-              <button className={styles.levelButton}>Beginner</button>
-            </Link>
-            <Link to="/practicePage/intermediate">
-              <button className={styles.levelButton}>Intermediate</button>
-            </Link>
-            <Link to="/practicePage/advanced">
-              <button className={styles.levelButton}>Advanced</button>
-            </Link>
-          </div>
+          <button
+            className={styles.button}
+            onClick={() => setShowLevelMenu(!showLevelMenu)}
+            aria-label="Select Practice Level"
+          >
+            Practice Mode
+          </button>
+          {showLevelMenu && (
+            <div className={styles.dropdownMenu}>
+              <Link to="/practicePage/beginner">
+                <button className={styles.levelButton}>Beginner</button>
+              </Link>
+              <Link to="/practicePage/intermediate">
+                <button className={styles.levelButton}>Intermediate</button>
+              </Link>
+              <Link to="/practicePage/advanced">
+                <button className={styles.levelButton}>Advanced</button>
+              </Link>
+            </div>
           )}
         </div>
       </div>
+     
     </div>
   );
 };

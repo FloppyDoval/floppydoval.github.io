@@ -33,12 +33,14 @@ public class UpdateTagHandler implements Route {
       String usrId = request.queryParams("userid");
 
       double score = 0;
+      double sessions = 0;
       List<Map<String, Object>> values = this.storageHandler.getCollection(usrId, "tag");
       System.out.println(values);
       if (values != null) {
         if (!values.isEmpty()) {
           if (values.get(0).get("score") != null) {
             score = Double.parseDouble(values.get(0).get("score").toString());
+            sessions = Double.parseDouble(values.get(0).get("sessions").toString());
           }
         }
       }
@@ -46,6 +48,7 @@ public class UpdateTagHandler implements Route {
       data.put("tag", tag);
       data.put("score", score);
       data.put("userid", usrId);
+      data.put("sessions", sessions);
       // use the storage handler to add the document to the database
       this.storageHandler.addDocument(usrId, "tag", usrId, data);
 

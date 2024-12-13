@@ -31,15 +31,25 @@ public class StoreScoreHandler implements Route {
       // collect parameters from the request
       String score = request.queryParams("score");
       String usrId = request.queryParams("userid");
+
       double num = Double.parseDouble(score);
+
       Map<String, Object> data = new HashMap<>();
 
       List<Map<String, Object>> values = this.storageHandler.getCollection(usrId, "score");
-      System.out.println(values);
+
       if (!values.isEmpty()) {
         if (values.get(0).get("score") != null) {
+
           num = Double.parseDouble(score) + (Double) values.get(0).get("score");
           data.put("tag", values.get(0).get("tag"));
+
+          if (values.get(0).get("sessions") == null) {
+            data.put("sessions", 1);
+          } else {
+            double sessions = Double.parseDouble(values.get(0).get("sessions").toString());
+            data.put("sessions", 1 + sessions);
+          }
         }
       } else {
         num = Double.parseDouble(score);

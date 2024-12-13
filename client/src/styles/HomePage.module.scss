@@ -211,3 +211,46 @@ $blue: #1a82c3;
       }
     }
   }
+
+  .table {
+    margin: 2rem auto;
+    padding: 1rem;
+    background: rgba(137, 177, 155, 0.1); // light mint background
+    border-radius: 12px;
+    width: 50%;
+    font-family: 'Arial', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+    table {
+      width: 50%;
+      border-collapse: collapse;
+      margin: 0 auto;
+  
+      thead {
+        background-color: $mint-primary;
+        color: white;
+        align-items: center;
+  
+        th {
+          padding: 1rem;
+          text-align: center;
+        }
+      }
+  
+      tbody {
+        tr {
+          &:nth-child(even) {
+            background-color: rgba(237, 248, 252, 0.5); // Light blue for even rows
+          }
+  
+          td {
+            padding: 0.8rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(137, 177, 155, 0.2);
+          }
+        }
+      }
+    }
+  }
+
+  

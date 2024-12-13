@@ -4,7 +4,6 @@ import KoreanKeyboard from "../keyboard";
 import ProgressBar from "../ProgressBar";
 import Card from "../Card";
 import styles from "../../styles/LearnPage.module.scss";
-import ResultsPage from "./ResultsPage";
 
 import {
   SignedIn,
@@ -16,7 +15,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 export const LearnPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isCorrect, setIsCorrect] = useState(null);
   const [shuffledCharacters, setShuffledCharacters] = useState(
     [...charactersToLearn].sort(() => Math.random() - 0.5)
   );
@@ -26,41 +25,62 @@ export const LearnPage = () => {
 
   const [correctAttempts, setCorrectAttempts] = useState(0);
   const [incorrectAttempts, setIncorrectAttempts] = useState(0);
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
   const [isLessonComplete, setIsLessonComplete] = useState(false);
   const [timeSpent, setTimeSpent] = useState(0);
   const [totalTimeSpent, setTotalTimeSpent] = useState(0);
-  const startTimeRef = useRef<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef(null);
+  const intervalRef = useRef(null);
+  const accumulatedTimeRef = useRef(0);
   const [isPaused, setIsPaused] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
+  const [storedScore, setStoredScore] = useState(false);
 
   let user = useUser().user;
 
-  const handleKeyPress = (key: string) => {
+  const handleKeyPress = (key) => {
     if (isLessonComplete || isPaused) return;
+    
     const expectedKey = currentCharacter.roman_representation;
     const requiresShift = expectedKey === expectedKey.toUpperCase();
+
+    setTotalAttempts(prev => prev + 1);
 
     if (
       (requiresShift && isShiftPressed && key === expectedKey) || 
       (!requiresShift && key === expectedKey.toLowerCase())
     ) {
       setIsCorrect(true);
-      setCorrectAttempts(correctAttempts + 1);
+      setCorrectAttempts(prev => prev + 1);
+      
+      const newTotalAttempts = totalAttempts + 1;
+      const newCorrectAttempts = correctAttempts + 1;
+      setAccuracy(Math.round((newCorrectAttempts / newTotalAttempts) * 100));
+      
       setTimeout(() => {
         if (currentIndex < shuffledCharacters.length - 1) {
           setCurrentIndex(currentIndex + 1);
           setProgress(((currentIndex + 1) / shuffledCharacters.length) * 100);
         } else {
+          if(storedScore){
+            storeScore();
+            setStoredScore(false);
+          }
           setIsLessonComplete(true);
         }
         setIsCorrect(null);
       }, 500);
     } else if (key !== "Shift") {
       setIsCorrect(false);
-      setIncorrectAttempts(incorrectAttempts + 1);
+      setIncorrectAttempts(prev => prev + 1);
+      
+      const newTotalAttempts = totalAttempts + 1;
+      const newIncorrectAttempts = incorrectAttempts + 1;
+      setAccuracy(Math.round((correctAttempts / newTotalAttempts) * 100));
+      
       setTimeout(() => setIsCorrect(null), 500);
     }
   };
@@ -68,19 +88,18 @@ export const LearnPage = () => {
   const startTimer = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
-    const resumedTime = location.state?.timeSpent || 0;
-    startTimeRef.current = Date.now() - (resumedTime * 1000);
+    startTimeRef.current = Date.now();
 
     intervalRef.current = setInterval(() => {
-      if (startTimeRef.current) {
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
-        setTimeSpent(elapsedSeconds);
-        const previousTime = location.state?.previousTimeSpent || 0;
-        setTotalTimeSpent(elapsedSeconds + previousTime);
-      }
+      const currentTime = Date.now();
+      const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+      const totalSeconds = accumulatedTimeRef.current + elapsedSeconds;
+      
+      setTimeSpent(elapsedSeconds);
+      setTotalTimeSpent(totalSeconds);
     }, 1000);
   };
 
@@ -88,23 +107,34 @@ export const LearnPage = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+
+      if (startTimeRef.current) {
+        const currentTime = Date.now();
+        const additionalSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+        accumulatedTimeRef.current += additionalSeconds;
+      }
     }
     startTimeRef.current = null;
   };
 
   const pauseLesson = () => {
-    stopTimer();
-    setIsPaused(true);
-    navigate("/resume", { 
-      state: { 
-        timeSpent, 
-        previousTimeSpent: totalTimeSpent - timeSpent,
-        progress, 
-        currentIndex,
-        correctAttempts,
-        incorrectAttempts
-      } 
-    });
+    if (isLessonComplete) return;
+    
+    setIsPaused(!isPaused);
+    if (!isPaused) {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  };
+
+  const continueLesson = () => {
+    setIsPaused(false);
+    startTimer();
+  };
+
+  const returnToMenu = () => {
+    navigate('/');
   };
 
   const resetLesson = () => {
@@ -113,35 +143,43 @@ export const LearnPage = () => {
       intervalRef.current = null;
     }
     
+    startTimeRef.current = null;
+    accumulatedTimeRef.current = 0;
+    setTimeSpent(0);
+    setTotalTimeSpent(0);
+    
     setShuffledCharacters([...charactersToLearn].sort(() => Math.random() - 0.5));
     setCurrentIndex(0);
     setProgress(0);
     setIsCorrect(null);
     setIsLessonComplete(false);
-    setTimeSpent(0);
-    setTotalTimeSpent(0);
+    setTotalAttempts(0);
     setCorrectAttempts(0);
     setIncorrectAttempts(0);
+    setAccuracy(0);
     
-    startTimeRef.current = Date.now();
-    
-    intervalRef.current = setInterval(() => {
-      if (startTimeRef.current) {
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
-        setTimeSpent(elapsedSeconds);
-        setTotalTimeSpent(elapsedSeconds);
-      }
-    }, 1000);
+    setTimeout(() => {
+      startTimer();
+    }, 0);
   };
 
   useEffect(() => {
-    if (!location.state?.timeSpent) {
-      startTimeRef.current = Date.now();
+    if (location.state) {
+      const { timeSpent, previousTimeSpent } = location.state;
+      
+      if (previousTimeSpent !== undefined) {
+        accumulatedTimeRef.current = previousTimeSpent;
+        setTotalTimeSpent(previousTimeSpent);
+      }
+      if (timeSpent !== undefined) setTimeSpent(timeSpent);
+
+      window.history.replaceState({}, document.title);
     }
+
+    setStoredScore(true);
     startTimer();
     return () => stopTimer();
-  }, []);
+  }, [location.state]);
 
   useEffect(() => {
     if (isLessonComplete) {
@@ -150,27 +188,7 @@ export const LearnPage = () => {
   }, [isLessonComplete]);
 
   useEffect(() => {
-    if (location.state) {
-      const { timeSpent, progress, currentIndex, previousTimeSpent, correctAttempts, incorrectAttempts } = location.state;
-      
-      if (timeSpent !== undefined) setTimeSpent(timeSpent);
-      if (progress !== undefined) setProgress(progress);
-      if (currentIndex !== undefined) setCurrentIndex(currentIndex);
-      if (previousTimeSpent !== undefined) setTotalTimeSpent(previousTimeSpent);
-      if (correctAttempts !== undefined) setCorrectAttempts(correctAttempts);
-      if (incorrectAttempts !== undefined) setIncorrectAttempts(incorrectAttempts);
-    }
-
-    if (location.state?.timeSpent) {
-      window.history.replaceState({}, document.title);
-    }
-
-    startTimer();
-    return () => stopTimer();
-  }, [location.state]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event) => {
       if (event.key === "Shift") {
         setIsShiftPressed(true);
       } else {
@@ -178,7 +196,7 @@ export const LearnPage = () => {
       }
     };
 
-    const handleKeyUp = (event: KeyboardEvent) => {
+    const handleKeyUp = (event) => {
       if (event.key === "Shift") {
         setIsShiftPressed(false);
       }
@@ -194,29 +212,12 @@ export const LearnPage = () => {
     };
   }, [currentCharacter, isShiftPressed, isLessonComplete, isPaused]);
 
-  async function storeScore(){  
-    
-    //Caculates user score for this task based off accuracy and time spent 
-    let userAccuracy = ((correctAttempts/(correctAttempts + incorrectAttempts))*100);
-    let userPoints = userAccuracy/ (timeSpent*.1);
-    userPoints = Math.trunc(userPoints);
-    console.log(user);
-    
+  async function storeScore() {  
+    let userPoints = Math.trunc(accuracy / (totalTimeSpent * 0.1));
+
     if(user?.id != undefined){
       await fetch("http://localhost:3232/storeScore?userid="+user?.id+"&score="+userPoints);
     }
-  }
-
-  if (isLessonComplete) {
-    storeScore();
-    return (
-      <ResultsPage
-        correctAttempts={correctAttempts}
-        incorrectAttempts={incorrectAttempts}
-        timeSpent={totalTimeSpent}
-        resetLesson={resetLesson}
-      />
-    );
   }
 
   return (
@@ -228,7 +229,7 @@ export const LearnPage = () => {
               style={{
                 padding: "10px 15px",
                 marginTop: "0px",
-                marginLeft: "1200px",
+                marginLeft: "70em",
                 backgroundColor: "rgba(160, 222, 68, 0.271)",
                 font: "Apple SD Gothic Neo",
                 borderRadius: "30px",
@@ -247,7 +248,7 @@ export const LearnPage = () => {
                   style={{
                     padding: "10px 15px",
                     marginTop: "0px",
-                    marginLeft: "10px",
+                    marginLeft: "0.5em",
                     backgroundColor: "rgba(160, 222, 68, 0.271)",
                     font: "Apple SD Gothic Neo",
                     borderRadius: "30px",
@@ -306,8 +307,77 @@ export const LearnPage = () => {
           </p>
         </div>
       </div>
+      {isLessonComplete && (
+        <div className={styles['completion-overlay']}>
+          <div className={styles['completion-modal']}>
+            <h2>Lesson Completed</h2>
+            <div className={styles['stats-container']}>
+              <div className={styles['stat-item']}>
+                <span className={styles['stat-label']}>Total Time:</span>
+                <span className={styles['stat-value']}>
+                  {Math.floor(totalTimeSpent / 60)}:{("0" + (totalTimeSpent % 60)).slice(-2)}
+                </span>
+              </div>
+              <div className={styles['stat-item']}>
+                <span className={styles['stat-label']}>Total Attempts:</span>
+                <span className={styles['stat-value']}>{totalAttempts}</span>
+              </div>
+              <div className={styles['stat-item']}>
+                <span className={styles['stat-label']}>Correct Attempts:</span>
+                <span className={styles['stat-value']}>{correctAttempts}</span>
+              </div>
+              <div className={styles['stat-item']}>
+                <span className={styles['stat-label']}>Incorrect Attempts:</span>
+                <span className={styles['stat-value']}>{incorrectAttempts}</span>
+              </div>
+              <div className={styles['stat-item']}>
+                <span className={styles['stat-label']}>Accuracy:</span>
+                <span className={styles['stat-value']}>{accuracy}%</span>
+              </div>
+            </div>
+            <div className={styles['completion-actions']}>
+              <button 
+                onClick={resetLesson} 
+                className={styles['reset-btn']}
+              >
+                Try Again
+              </button>
+              <button 
+                onClick={() => navigate('/')} 
+                className={styles['return-btn']}
+              >
+                Return to Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Overlay */}
+      {isPaused && !isLessonComplete && (
+        <div className={styles['pause-overlay']}>
+          <div className={styles['pause-modal']}>
+            <h2>Lesson Paused</h2>
+            <p>Your lesson is currently on hold.</p>
+            <div className={styles['pause-actions']}>
+              <button 
+                onClick={continueLesson} 
+                className={styles['continue-btn']}
+              >
+                Continue Lesson
+              </button>
+              <button 
+                onClick={returnToMenu} 
+                className={styles['return-btn']}
+              >
+                Return to Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
-      <KoreanKeyboard onClick={handleKeyPress} />
+      <KoreanKeyboard onClick={handleKeyPress} disabled={isPaused || isLessonComplete} />
     </div>
   );
 };

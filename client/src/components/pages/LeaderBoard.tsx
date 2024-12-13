@@ -23,18 +23,6 @@ const LeaderBoard = () => {
       }
     }
     
-    // let users: Map<string, Object>[] = [];
-    // let map1: Map<string, Object> = new Map();
-    // map1.set("score", 10);
-    // map1.set("userid", 999);
-    // let map2: Map<string, Object> = new Map();
-    // map2.set("score", 20);
-    // let map3: Map<string, Object> = new Map();
-    // map3.set("score", 5);
-    // let map4: Map<string, Object> = new Map();
-    // map4.set("score", 15);
-    // users.push(map1,map2,map3,map4);
-    // console.log(users);
 
     // Sort the users list based on the score 
     users.sort((a, b) => { 
@@ -57,7 +45,7 @@ const LeaderBoard = () => {
           style={{
             padding: "10px 15px",
             marginTop: "0px",
-            marginLeft: "1340px",
+            marginLeft: "0wh",
             backgroundColor: "rgba(160, 222, 68, 0.271)",
             font: "Apple SD Gothic Neo",
             borderRadius: "30px",
